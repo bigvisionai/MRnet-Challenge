@@ -7,3 +7,7 @@
 *.pyc
 
 .vscode
+
+runs/
+
+*__pycache__*

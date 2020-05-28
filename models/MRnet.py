@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
+import os
 
 class MRnet(nn.Module):
     """MRnet uses pretrained resnet50 as a backbone to extract features
@@ -73,6 +74,11 @@ class MRnet(nn.Module):
         print('Saving Best Accuracy Model with score {:.3f} at epoch {}'.format(accuracy, epoch+1))
         
         save_path = config['weights_path'] 
+        
+        if not os.path.isdir(save_path):
+            os.makedirs(save_path)
+        
+
         model_name = 'MRnet_{}_{}.pth'.format(int(accuracy*100), epoch+1)
         save_path += model_name
 
