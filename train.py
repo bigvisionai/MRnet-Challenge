@@ -49,8 +49,8 @@ def train(config : dict, export=True):
 
     print('Setup the Optimizer')
     # TODO : Add other hyperparams as well
-    optimizer = torch.optim.Adam(_get_trainable_params(model), lr=config['lr'])
-
+    optimizer = torch.optim.Adam(_get_trainable_params(model),lr=config['lr'])
+    scheduleLR=torch.optim.lr_scheduler.StepLR(optimizer,step_size=5,gamma=0.5)
     starting_epoch = config['starting_epoch']
     num_epochs = config['max_epoch']
 
@@ -86,6 +86,10 @@ def train(config : dict, export=True):
 
             output = model(images)
 
+            # zero out all grads
+            # criterion.zero_grad()
+            optimizer.zero_grad()
+
             # Calculate Loss cross Entropy
             loss = criterion(output, label)
             # TODO : Add loss in TensorBoard
@@ -99,9 +103,8 @@ def train(config : dict, export=True):
             # Change wieghts
             optimizer.step()
 
-            # zero out all grads
-            criterion.zero_grad()
-            optimizer.zero_grad()
+            # Updating LR
+            scheduleLR.step()
 
             # Log some info, TODO : add some graphs after some interval
             if num_batch % config['log_freq'] == 0:
