@@ -2,6 +2,7 @@ from dataset import MRData
 from models import MRnet
 from config import config
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from utils import _get_trainable_params, _run_eval
 import time
 import torch.utils.data as data
@@ -57,6 +58,7 @@ def train(config : dict, export=True):
 
     print('Starting Training')
 
+    writer=SummaryWriter(comment=f'lr={config["lr"]}')
     # TODO : add tqdm with support with notebook
     for epoch in range(starting_epoch, num_epochs):
 
@@ -113,10 +115,13 @@ def train(config : dict, export=True):
         # spit train loss details
         average_train_loss = total_loss / len(train_loader)
         print('Average Train Loss at Epoch {} : {:.4f}'.format(epoch+1, average_train_loss))
-
+        writer.add_scalar("Train/Avg Loss",average_train_loss,epoch)
+        writer.add_scalar("Train/Total Loss",total_loss,epoch)
         # Calc validation results    
         # Print details about end of epoch
         validation_loss, accuracy = _run_eval(model, val_loader, criterion, config)
+        writer.add_scalar("Val/Loss",validation_loss,epoch)
+        writer.add_scalar("Val/Accuracy",validation_loss,epoch)
 
         print('Average Validation Loss at Epoch {} : {:.4f}'.format(epoch+1, validation_loss))
         print('Validation Accuracy at Epoch {} : {:.4f}'.format(epoch+1, accuracy))
@@ -134,7 +139,7 @@ def train(config : dict, export=True):
 
         total_loss = 0.0
         print('End of epoch {0} / {1} \t Time Taken: {2} sec'.format(epoch+1, num_epochs, time.time() - epoch_start_time))
-
+    writer.close()
 
 if __name__ == '__main__':
 
