@@ -1,0 +1,9 @@
+*.npy
+*.DS_Store
+
+*.pth
+*.csv
+
+*.pyc
+
+.vscode
