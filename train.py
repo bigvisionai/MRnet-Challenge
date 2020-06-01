@@ -75,7 +75,7 @@ def train(config : dict, export=True):
         model.train()
 
         # TODO : add tqdm here as well ? or time remaining ?
-        for batch in train_loader:
+        for i,batch in enumerate (train_loader):
 
             images, label = batch
 
@@ -102,9 +102,9 @@ def train(config : dict, export=True):
 
             # Change wieghts
             optimizer.step()
-
-            # Updating LR
-            scheduleLR.step()
+            for name,params in model.named_parameters():
+                writer.add_histogram(name,params,i)
+                # writer.add_histogram(name+"grads",params.grad,i)
 
             # Log some info, TODO : add some graphs after some interval
             if num_batch % config['log_freq'] == 0:
@@ -112,8 +112,14 @@ def train(config : dict, export=True):
                     epoch+1, num_epochs, num_batch+1, len(train_loader), loss.item()
                 ))
 
+                print("output :",output)
+                print("label :",label)
+                print("####################################")
+
             num_batch += 1
 
+        # Updating LR
+        scheduleLR.step()
 
         # spit train loss details
         average_train_loss = total_loss / len(train_loader)
