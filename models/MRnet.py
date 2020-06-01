@@ -60,8 +60,8 @@ class MRnet(nn.Module):
         body = nn.Sequential(*resnet_modules[:-1])
         
         # make params non trainable
-        for x in body.parameters():
-            x.requires_grad = False
+        # for x in body.parameters():
+        #     x.requires_grad = False
 
         return body
 
