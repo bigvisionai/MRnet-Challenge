@@ -27,13 +27,13 @@ def train(config : dict, export=True):
     print('Starting to Train Model...')
 
     print('Loading Train Dataset...')
-    train_data = MRData(task='acl',train=True)
+    train_data = MRData(task='abnormal',train=True)
     train_loader = data.DataLoader(
         train_data, batch_size=1, num_workers=4, shuffle=True
     )
 
     print('Loading Validation Dataset...')
-    val_data = MRData(task='acl',train=False)
+    val_data = MRData(task='abnormal',train=False)
     val_loader = data.DataLoader(
         val_data, batch_size=1, num_workers=4, shuffle=False
     )
@@ -49,7 +49,7 @@ def train(config : dict, export=True):
 
     print('Setup the Optimizer')
     # TODO : Add other hyperparams as well
-    optimizer = torch.optim.Adam(_get_trainable_params(model),lr=config['lr'])
+    optimizer = torch.optim.Adam(model.parameters(),lr=config['lr'])
     scheduleLR=torch.optim.lr_scheduler.StepLR(optimizer,step_size=5,gamma=0.5)
     starting_epoch = config['starting_epoch']
     num_epochs = config['max_epoch']
@@ -82,13 +82,13 @@ def train(config : dict, export=True):
             images = [img.cuda() for img in images]
             label = label.cuda()
 
-            # TODO: Add some visualiser maybe
-
-            output = model(images)
-
             # zero out all grads
             # criterion.zero_grad()
             optimizer.zero_grad()
+
+            # TODO: Add some visualiser maybe
+
+            output = model(images)
 
             # Calculate Loss cross Entropy
             loss = criterion(output, label)
@@ -130,7 +130,7 @@ def train(config : dict, export=True):
         # Print details about end of epoch
         validation_loss, accuracy = _run_eval(model, val_loader, criterion, config)
         writer.add_scalar("Val/Loss",validation_loss,epoch)
-        writer.add_scalar("Val/Accuracy",validation_loss,epoch)
+        writer.add_scalar("Val/Accuracy",accuracy,epoch)
 
         print('Average Validation Loss at Epoch {} : {:.4f}'.format(epoch+1, validation_loss))
         print('Validation Accuracy at Epoch {} : {:.4f}'.format(epoch+1, accuracy))
