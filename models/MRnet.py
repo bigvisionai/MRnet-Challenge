@@ -88,6 +88,3 @@ class MRnet(nn.Module):
             'optimizer_state_dict': optimizer.state_dict(),
             'criterion_state_dict': criterion.state_dict(),
             }, save_path)
-        
-        
-    
