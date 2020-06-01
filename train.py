@@ -58,7 +58,7 @@ def train(config : dict, export=True):
 
     print('Starting Training')
 
-    writer=SummaryWriter(comment=f'lr={config["lr"]}')
+    writer=SummaryWriter("trainLogs",comment=f'lr={config["lr"]}')
     # TODO : add tqdm with support with notebook
     for epoch in range(starting_epoch, num_epochs):
 
@@ -105,6 +105,7 @@ def train(config : dict, export=True):
             for name,params in model.named_parameters():
                 writer.add_histogram(name,params,i)
                 # writer.add_histogram(name+"grads",params.grad,i)
+            writer.flush()
 
             # Log some info, TODO : add some graphs after some interval
             if num_batch % config['log_freq'] == 0:
