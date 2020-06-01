@@ -27,7 +27,7 @@ class MRnet(nn.Module):
         `image1 = [1, slices, 3, 224, 224]`. Note that `1` is due to the 
         dataloader assigning it a single batch. 
         """
-
+        # import pdb;pdb.set_trace()
         # squeeze the first dimension as there
         # is only one patient in each batch
         images = [torch.squeeze(img, dim=0) for img in x]
@@ -55,7 +55,7 @@ class MRnet(nn.Module):
         # init resnet
         backbone = models.resnet50(pretrained=True)
         resnet_modules = list(backbone.children())
-
+        # import pdb;pdb.set_trace()
         # remove last layer of resnet
         body = nn.Sequential(*resnet_modules[:-1])
         
