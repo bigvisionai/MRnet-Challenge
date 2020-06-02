@@ -2,6 +2,7 @@ from dataset import MRData
 from models import MRnet
 from config import config
 import torch
+import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from utils import _get_trainable_params, _run_eval
 import time
@@ -44,13 +45,14 @@ def train(config : dict, export=True):
 
     print('Initializing Loss Method...')
     # TODO : maybe take a wiegthed loss
-    criterion = torch.nn.CrossEntropyLoss()
-    criterion.cuda()
+    criterion = F.cross_entropy
 
     print('Setup the Optimizer')
     # TODO : Add other hyperparams as well
-    optimizer = torch.optim.Adam(model.parameters(),lr=config['lr'])
+    optimizer = torch.optim.Adam(_get_trainable_params(model),lr=config['lr'])
+
     scheduleLR=torch.optim.lr_scheduler.StepLR(optimizer,step_size=5,gamma=0.5)
+
     starting_epoch = config['starting_epoch']
     num_epochs = config['max_epoch']
 
@@ -58,7 +60,8 @@ def train(config : dict, export=True):
 
     print('Starting Training')
 
-    writer=SummaryWriter(comment=f'lr={config["lr"]} dropout')
+    writer = SummaryWriter(comment=f'lr={config["lr"]} dropout')
+
     # TODO : add tqdm with support with notebook
     for epoch in range(starting_epoch, num_epochs):
 
@@ -90,9 +93,8 @@ def train(config : dict, export=True):
 
             output = model(images)
 
-            # Calculate Loss cross Entropy
+            # Calculate Loss cross Entropy, TODO : add weights
             loss = criterion(output, label)
-            # TODO : Add loss in TensorBoard
 
             # add loss to epoch loss
             total_loss += loss.item()
@@ -102,11 +104,13 @@ def train(config : dict, export=True):
 
             # Change wieghts
             optimizer.step()
+            
+            # Write to tensorboard
             for name,params in model.named_parameters():
                 if params.requires_grad:
-                    print(name)
                     writer.add_histogram(name,params,i)
-                # writer.add_histogram(name+"grads",params.grad,i)
+            
+            # Flush to disk
             writer.flush()
 
             # Log some info, TODO : add some graphs after some interval
@@ -117,7 +121,8 @@ def train(config : dict, export=True):
 
                 print("output :",output)
                 print("label :",label)
-                print("####################################")
+                print("loss :", loss)
+                print("--------------------------")
 
             num_batch += 1
 
@@ -145,12 +150,11 @@ def train(config : dict, export=True):
             best_accuracy = accuracy
             # Save this model
             if export:
-                model._save_model(criterion, optimizer, best_accuracy, config, epoch)
-        
-        # TODO : Change LR depending upon epoch, LR
+                model._save_model(optimizer, best_accuracy, config, epoch)
 
         total_loss = 0.0
         print('End of epoch {0} / {1} \t Time Taken: {2} sec'.format(epoch+1, num_epochs, time.time() - epoch_start_time))
+        
     writer.close()
 
 if __name__ == '__main__':

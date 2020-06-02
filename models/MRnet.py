@@ -23,6 +23,7 @@ class MRnet(nn.Module):
             nn.Linear(in_features=1024,out_features=2),
             # torch.nn.Dropout(p=0.5),
         )
+
         torch.nn.init.xavier_uniform_(self.fc[0].weight) # initialize parameters
         torch.nn.init.xavier_uniform_(self.fc[3].weight) # initialize parameters
 
@@ -48,8 +49,6 @@ class MRnet(nn.Module):
 
         output = self.fc(output)
 
-        # no need to take softmax here
-        # as cross_entropy loss combines both softmax and NLL loss
         return output
     
     def _generate_resnet(self):
@@ -73,7 +72,7 @@ class MRnet(nn.Module):
         """load pretrained weights"""
         pass
 
-    def _save_model(self, criterion, optimizer, accuracy, config, epoch):
+    def _save_model(self, optimizer, accuracy, config, epoch):
         """Dump the model weights to `cfg['weights']` dir"""
         print('Saving Best Accuracy Model with score {:.3f} at epoch {}'.format(accuracy, epoch+1))
         
@@ -90,5 +89,4 @@ class MRnet(nn.Module):
             'epoch': epoch,
             'model_state_dict': self.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'criterion_state_dict': criterion.state_dict(),
             }, save_path)
