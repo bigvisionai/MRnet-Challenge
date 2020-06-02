@@ -58,7 +58,7 @@ def train(config : dict, export=True):
 
     print('Starting Training')
 
-    writer=SummaryWriter("trainLogs",comment=f'lr={config["lr"]}')
+    writer=SummaryWriter(comment=f'lr={config["lr"]} dropout')
     # TODO : add tqdm with support with notebook
     for epoch in range(starting_epoch, num_epochs):
 
@@ -103,7 +103,9 @@ def train(config : dict, export=True):
             # Change wieghts
             optimizer.step()
             for name,params in model.named_parameters():
-                writer.add_histogram(name,params,i)
+                if params.requires_grad:
+                    print(name)
+                    writer.add_histogram(name,params,i)
                 # writer.add_histogram(name+"grads",params.grad,i)
             writer.flush()
 
