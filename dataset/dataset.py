@@ -60,9 +60,12 @@ class MRData():
 
         self.labels = self.records['label'].tolist()
         
-        pos = sum(self.labels)
-        neg = len(self.labels) - pos
-        self.weights = torch.tensor([1., neg / pos])
+        if weights is None : 
+            pos = sum(self.labels)
+            neg = len(self.labels) - pos
+            self.weights = torch.tensor([1., neg / pos])
+        else:
+            self.weights = weights
 
         print('+ve samples : ',pos)
         print('-ve samples : ',neg)

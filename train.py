@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils import _get_trainable_params, _run_eval, _confusion_metrics
 import time
 import torch.utils.data as data
+from sklearn import metrics
 
 """Performs training of a specified model.
     
@@ -44,8 +45,9 @@ def train(config : dict, export=True):
     model = model.cuda()
 
     print('Initializing Loss Method...')
-    # TODO : maybe take a wiegthed loss
-    criterion = F.cross_entropy
+    # Create critierion for Validation 
+    train_weight = torch.tensor([train_data.weights[1]]).cuda()
+    criterion = torch.nn.BCEWithLogitsLoss(pos_weight=train_weight)
 
     print('Setup the Optimizer')
     optimizer = torch.optim.Adam(_get_trainable_params(model),lr=config['lr'])
@@ -76,33 +78,32 @@ def train(config : dict, export=True):
 
         model.train()
 
-        y_preds = []
+        y_probs = []
         y_ground = []
 
         # TODO : add tqdm here as well ? or time remaining ?
         for i,batch in enumerate (train_loader):
 
-            images, label, weights = batch
+            images, label, _ = batch
 
             # Send to GPU
-            images = [img.cuda() for img in images]
+            images = [x.cuda() for x in images]
             label = label.cuda()
-            weights = weights.cuda()
-
-            # squash the first dim due to dataloader
-            weights = weights.squeeze(dim = 0)
+            label = label.float()
+            label = label.unsqueeze(dim = 0)
 
             # zero out all grads
             optimizer.zero_grad()
 
             output = model(images)
 
-            # add to confusion matrix data
-            y_preds.append(torch.argmax(output,dim=1).item())
+            # add to ROC data
+            output = torch.sigmoid(output)
+            y_probs.append(output.item())
             y_ground.append(label.item())
 
             # Calculate Loss cross Entropy
-            loss = criterion(output, label, weights)
+            loss = criterion(output, label)
 
             # add loss to epoch loss
             total_loss += loss.item()
@@ -141,33 +142,28 @@ def train(config : dict, export=True):
         print('Average Train Loss at Epoch {} : {:.4f}'.format(epoch+1, average_train_loss))
         writer.add_scalar("Train/Avg Loss",average_train_loss,epoch)
         writer.add_scalar("Train/Total Loss",total_loss,epoch)
-        precision, recall, f1_score = _confusion_metrics(y_preds, y_ground)
 
-        print('Train Precision at Epoch {} : {:.4f}'.format(epoch+1, precision))
-        print('Train Recall at Epoch {} : {:.4f}'.format(epoch+1, recall))
-        print('Train F1-Score at Epoch {} : {:.4f}'.format(epoch+1, f1_score))
+        train_auc = metrics.roc_auc_score(y_ground, y_probs)
+        writer.add_scalar("Train/AUC",train_auc,epoch)
+        print('Train AUC at Epoch {} : {:.4f}'.format(epoch+1, train_auc))
 
-        writer.add_scalar("Train/F1_Score",f1_score,epoch)
-        writer.add_scalar("Train/Recall",recall,epoch)
-        writer.add_scalar("Train/Precision",precision,epoch)
-
+        # Create critierion for Validation 
+        val_weight = torch.tensor([val_data.weights[1]]).cuda()
+        val_criterion = torch.nn.BCEWithLogitsLoss(pos_weight=val_weight)
         
-        validation_loss, precision, recall, f1_score = _run_eval(model, val_loader, criterion, config)
+        validation_loss, y_probs, y_ground = _run_eval(model, val_loader, val_criterion, config)
+        val_auc = metrics.roc_auc_score(y_ground, y_probs)
         writer.add_scalar("Val/Loss",validation_loss,epoch)
-        writer.add_scalar("Val/F1_Score",f1_score,epoch)
-        writer.add_scalar("Val/Recall",recall,epoch)
-        writer.add_scalar("Val/Precision",precision,epoch)
+        writer.add_scalar("Val/AUC",val_auc,epoch)
 
         print('Average Validation Loss at Epoch {} : {:.4f}'.format(epoch+1, validation_loss))
-        print('Val Precision at Epoch {} : {:.4f}'.format(epoch+1, precision))
-        print('Val Recall at Epoch {} : {:.4f}'.format(epoch+1, recall))
-        print('Val F1-Score at Epoch {} : {:.4f}'.format(epoch+1, f1_score))
+        print('Val AUC at Epoch {} : {:.4f}'.format(epoch+1, val_auc))
 
-        if best_accuracy < f1_score :
-            best_accuracy = f1_score
+        if best_accuracy < val_auc :
+            best_accuracy = val_auc
             # Save this model
             if export:
-                model._save_model(f1_score, config, epoch)
+                model._save_model(val_auc, config, epoch)
 
         total_loss = 0.0
         print('End of epoch {0} / {1} \t Time Taken: {2} sec'.format(epoch+1, num_epochs, time.time() - epoch_start_time))

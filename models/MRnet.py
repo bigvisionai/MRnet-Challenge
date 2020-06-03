@@ -20,8 +20,8 @@ class MRnet(nn.Module):
             nn.Linear(in_features=3*2048,out_features=1024),
             nn.ReLU(),
             torch.nn.Dropout(p=0.5),
-            nn.Linear(in_features=1024,out_features=2),
-            # nn.Sigmoid()
+            nn.Linear(in_features=1024,out_features=1),
+            nn.Sigmoid()
         )
 
         torch.nn.init.xavier_uniform_(self.fc[0].weight) # initialize parameters
