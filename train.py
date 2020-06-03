@@ -28,13 +28,13 @@ def train(config : dict, export=True):
     print('Starting to Train Model...')
 
     print('Loading Train Dataset...')
-    train_data = MRData(task='abnormal',train=True)
+    train_data = MRData(task='acl',train=True)
     train_loader = data.DataLoader(
         train_data, batch_size=1, num_workers=4, shuffle=True
     )
 
     print('Loading Validation Dataset...')
-    val_data = MRData(task='abnormal',train=False)
+    val_data = MRData(task='acl',train=False)
     val_loader = data.DataLoader(
         val_data, batch_size=1, num_workers=4, shuffle=False
     )
@@ -142,6 +142,10 @@ def train(config : dict, export=True):
         writer.add_scalar("Train/Avg Loss",average_train_loss,epoch)
         writer.add_scalar("Train/Total Loss",total_loss,epoch)
         precision, recall, f1_score = _confusion_metrics(y_preds, y_ground)
+
+        print('Train Precision at Epoch {} : {:.4f}'.format(epoch+1, precision))
+        print('Train Recall at Epoch {} : {:.4f}'.format(epoch+1, recall))
+        print('Train F1-Score at Epoch {} : {:.4f}'.format(epoch+1, f1_score))
 
         writer.add_scalar("Train/F1_Score",f1_score,epoch)
         writer.add_scalar("Train/Recall",recall,epoch)
