@@ -4,7 +4,7 @@ from config import config
 import torch
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
-from utils import _get_trainable_params, _run_eval
+from utils import _get_trainable_params, _run_eval, _confusion_metrics
 import time
 import torch.utils.data as data
 
@@ -76,6 +76,9 @@ def train(config : dict, export=True):
 
         model.train()
 
+        y_preds = []
+        y_ground = []
+
         # TODO : add tqdm here as well ? or time remaining ?
         for i,batch in enumerate (train_loader):
 
@@ -93,6 +96,10 @@ def train(config : dict, export=True):
             optimizer.zero_grad()
 
             output = model(images)
+
+            # add to confusion matrix data
+            y_preds.append(torch.argmax(output,dim=1).item())
+            y_ground.append(label.item())
 
             # Calculate Loss cross Entropy
             loss = criterion(output, label, weights)
@@ -120,9 +127,9 @@ def train(config : dict, export=True):
                     epoch+1, num_epochs, num_batch+1, len(train_loader), loss.item()
                 ))
 
-                print('GT : ', label)
-                print('Pred : ',output)
-                print('-'*10)
+                # print('GT : ', label)
+                # print('Pred : ',output)
+                # print('-'*10)
             
             num_batch += 1
 
@@ -134,6 +141,12 @@ def train(config : dict, export=True):
         print('Average Train Loss at Epoch {} : {:.4f}'.format(epoch+1, average_train_loss))
         writer.add_scalar("Train/Avg Loss",average_train_loss,epoch)
         writer.add_scalar("Train/Total Loss",total_loss,epoch)
+        precision, recall, f1_score = _confusion_metrics(y_preds, y_ground)
+
+        writer.add_scalar("Train/F1_Score",f1_score,epoch)
+        writer.add_scalar("Train/Recall",recall,epoch)
+        writer.add_scalar("Train/Precision",precision,epoch)
+
         
         validation_loss, precision, recall, f1_score = _run_eval(model, val_loader, criterion, config)
         writer.add_scalar("Val/Loss",validation_loss,epoch)
@@ -142,15 +155,15 @@ def train(config : dict, export=True):
         writer.add_scalar("Val/Precision",precision,epoch)
 
         print('Average Validation Loss at Epoch {} : {:.4f}'.format(epoch+1, validation_loss))
-        print('Precision at Epoch {} : {:.4f}'.format(epoch+1, precision))
-        print('Recall at Epoch {} : {:.4f}'.format(epoch+1, recall))
-        print('F1-Score at Epoch {} : {:.4f}'.format(epoch+1, f1_score))
+        print('Val Precision at Epoch {} : {:.4f}'.format(epoch+1, precision))
+        print('Val Recall at Epoch {} : {:.4f}'.format(epoch+1, recall))
+        print('Val F1-Score at Epoch {} : {:.4f}'.format(epoch+1, f1_score))
 
         if best_accuracy < f1_score :
             best_accuracy = f1_score
             # Save this model
             if export:
-                model._save_model(optimizer, f1_score, config, epoch)
+                model._save_model(f1_score, config, epoch)
 
         total_loss = 0.0
         print('End of epoch {0} / {1} \t Time Taken: {2} sec'.format(epoch+1, num_epochs, time.time() - epoch_start_time))

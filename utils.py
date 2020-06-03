@@ -69,3 +69,23 @@ def _run_eval(model, validation_loader, criterion, config : dict):
     print('Confusion Matrix : ',conf_matrix)
 
     return average_val_loss, precision, recall, f1_score
+
+def _confusion_metrics(y_preds, y_ground):
+
+    # Find precision/ recall
+    preds = torch.stack([torch.tensor(y_preds), torch.tensor(y_ground)], dim=1)
+
+    conf_matrix = torch.zeros(2,2, dtype=torch.int64)
+
+    for pred in preds:
+        i,j = pred.tolist()
+        conf_matrix[i,j] += 1
+    
+    conf_matrix = conf_matrix.float()
+    precision = conf_matrix[1, 1].item() / (conf_matrix[1, 0].item() + conf_matrix[1, 1].item() + 1e-12)
+    recall = conf_matrix[1, 1].item() / (conf_matrix[0, 1].item() + conf_matrix[1, 1].item() + 1e-12)
+    f1_score = (2.0 * precision * recall) / (precision + recall + 1e-12)
+
+    print('Confusion Matrix : ',conf_matrix)
+
+    return precision, recall, f1_score
