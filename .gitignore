@@ -12,3 +12,6 @@ runs/
 
 *__pycache__*
 trainLogs/
+
+*.ipynb
+*-checkpoint.py

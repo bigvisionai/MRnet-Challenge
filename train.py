@@ -41,14 +41,13 @@ def train(config : dict, export=True):
 
     print('Initializing Model...')
     model = MRnet()
-    model.cuda()
+    model = model.cuda()
 
     print('Initializing Loss Method...')
     # TODO : maybe take a wiegthed loss
     criterion = F.cross_entropy
 
     print('Setup the Optimizer')
-    # TODO : Add other hyperparams as well
     optimizer = torch.optim.Adam(_get_trainable_params(model),lr=config['lr'])
 
     scheduleLR=torch.optim.lr_scheduler.StepLR(optimizer,step_size=5,gamma=0.5)
@@ -80,26 +79,28 @@ def train(config : dict, export=True):
         # TODO : add tqdm here as well ? or time remaining ?
         for i,batch in enumerate (train_loader):
 
-            images, label = batch
+            images, label, weights = batch
 
+            # Send to GPU
             images = [img.cuda() for img in images]
             label = label.cuda()
+            weights = weights.cuda()
+
+            # squash the first dim due to dataloader
+            weights = weights.squeeze(dim = 0)
 
             # zero out all grads
-            # criterion.zero_grad()
             optimizer.zero_grad()
-
-            # TODO: Add some visualiser maybe
 
             output = model(images)
 
-            # Calculate Loss cross Entropy, TODO : add weights
-            loss = criterion(output, label)
+            # Calculate Loss cross Entropy
+            loss = criterion(output, label, weights)
 
             # add loss to epoch loss
             total_loss += loss.item()
 
-            # Do backpropogation
+            # Do backprop
             loss.backward()
 
             # Change wieghts
@@ -113,17 +114,16 @@ def train(config : dict, export=True):
             # Flush to disk
             writer.flush()
 
-            # Log some info, TODO : add some graphs after some interval
+            # Log some info
             if num_batch % config['log_freq'] == 0:
                 print('{}/{} Epoch : {}/{} Batch Iter : Batch Loss {:.4f}'.format(
                     epoch+1, num_epochs, num_batch+1, len(train_loader), loss.item()
                 ))
 
-                print("output :",output)
-                print("label :",label)
-                print("loss :", loss)
-                print("--------------------------")
-
+                print('GT : ', label)
+                print('Pred : ',output)
+                print('-'*10)
+            
             num_batch += 1
 
         # Updating LR
@@ -134,23 +134,23 @@ def train(config : dict, export=True):
         print('Average Train Loss at Epoch {} : {:.4f}'.format(epoch+1, average_train_loss))
         writer.add_scalar("Train/Avg Loss",average_train_loss,epoch)
         writer.add_scalar("Train/Total Loss",total_loss,epoch)
-        # Calc validation results    
-        # Print details about end of epoch
-        validation_loss, accuracy = _run_eval(model, val_loader, criterion, config)
+        
+        validation_loss, precision, recall, f1_score = _run_eval(model, val_loader, criterion, config)
         writer.add_scalar("Val/Loss",validation_loss,epoch)
-        writer.add_scalar("Val/Accuracy",accuracy,epoch)
+        writer.add_scalar("Val/F1_Score",f1_score,epoch)
+        writer.add_scalar("Val/Recall",recall,epoch)
+        writer.add_scalar("Val/Precision",precision,epoch)
 
         print('Average Validation Loss at Epoch {} : {:.4f}'.format(epoch+1, validation_loss))
-        print('Validation Accuracy at Epoch {} : {:.4f}'.format(epoch+1, accuracy))
+        print('Precision at Epoch {} : {:.4f}'.format(epoch+1, precision))
+        print('Recall at Epoch {} : {:.4f}'.format(epoch+1, recall))
+        print('F1-Score at Epoch {} : {:.4f}'.format(epoch+1, f1_score))
 
-        # TODO : Print details about end of epoch and add it to tensorboard
-        # Accuracy, Train Loss, Val Loss, Learning Rate
-
-        if best_accuracy < accuracy :
-            best_accuracy = accuracy
+        if best_accuracy < f1_score :
+            best_accuracy = f1_score
             # Save this model
             if export:
-                model._save_model(optimizer, best_accuracy, config, epoch)
+                model._save_model(optimizer, f1_score, config, epoch)
 
         total_loss = 0.0
         print('End of epoch {0} / {1} \t Time Taken: {2} sec'.format(epoch+1, num_epochs, time.time() - epoch_start_time))

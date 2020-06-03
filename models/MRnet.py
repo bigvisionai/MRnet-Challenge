@@ -21,7 +21,7 @@ class MRnet(nn.Module):
             nn.ReLU(),
             torch.nn.Dropout(p=0.5),
             nn.Linear(in_features=1024,out_features=2),
-            # torch.nn.Dropout(p=0.5),
+            # nn.Sigmoid()
         )
 
         torch.nn.init.xavier_uniform_(self.fc[0].weight) # initialize parameters
@@ -32,7 +32,7 @@ class MRnet(nn.Module):
         `image1 = [1, slices, 3, 224, 224]`. Note that `1` is due to the 
         dataloader assigning it a single batch. 
         """
-        # import pdb;pdb.set_trace()
+
         # squeeze the first dimension as there
         # is only one patient in each batch
         images = [torch.squeeze(img, dim=0) for img in x]
@@ -58,7 +58,7 @@ class MRnet(nn.Module):
         # init resnet
         backbone = models.resnet50(pretrained=True)
         resnet_modules = list(backbone.children())
-        # import pdb;pdb.set_trace()
+
         # remove last layer of resnet
         body = nn.Sequential(*resnet_modules[:-1])
         
@@ -72,7 +72,7 @@ class MRnet(nn.Module):
         """load pretrained weights"""
         pass
 
-    def _save_model(self, optimizer, accuracy, config, epoch):
+    def _save_model(self, accuracy, config, epoch):
         """Dump the model weights to `cfg['weights']` dir"""
         print('Saving Best Accuracy Model with score {:.3f} at epoch {}'.format(accuracy, epoch+1))
         
@@ -81,12 +81,10 @@ class MRnet(nn.Module):
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
         
-
         model_name = 'MRnet_{}_{}.pth'.format(int(accuracy*100), epoch+1)
         save_path += model_name
 
         torch.save({
             'epoch': epoch,
-            'model_state_dict': self.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
+            'model_state_dict': self.state_dict()
             }, save_path)

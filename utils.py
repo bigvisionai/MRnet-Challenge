@@ -19,36 +19,53 @@ def _run_eval(model, validation_loader, criterion, config : dict):
     validation_loss = 0.0
 
     batch_iter = 0
-    for images, label in validation_loader:
+
+    y_preds = []
+    y_ground = []
+
+    for images, label, weight in validation_loader:
 
         images = [x.cuda() for x in images]
         label = label.cuda()
+        weight = weight.cuda()
+
+        weight = weight.squeeze(dim = 0)
 
         with torch.no_grad():
             output = model.forward(images)
 
             # Calc loss
-            loss = criterion(output, label)
+            loss = criterion(output, label, weight)
 
-            # TODO : label in form of [[1,0]] whereas output in [0.96,0.04], dimension do not match
-            if torch.argmax(output).item() == label[0].item():
-                # print('Correct !!')
-                correct_cases += 1
+            y_preds.append(torch.argmax(output,dim=1).item())
+            y_ground.append(label.item())
             
             validation_loss += loss.item()
 
             # TODO : Log current val loss somewhere ?
             
             if batch_iter % config['val_log_interval'] == 0:
-                print('Validation Loss is {:.4f} at iter {}/{}'.format(loss.item(), batch_iter+1, len(validation_loader)))
+                print('Val Loss at iter {}/{} : {:.4f}'.format( batch_iter+1, len(validation_loader), loss.item()))
             
-        
         batch_iter += 1
-
-    # Calculate accuracy
-    accuracy = float(correct_cases) / len(validation_loader)
 
     # Calculate Loss per patient
     average_val_loss = validation_loss / len(validation_loader)
 
-    return average_val_loss, accuracy
+    # Find precision/ recall
+    preds = torch.stack([torch.tensor(y_preds), torch.tensor(y_ground)], dim=1)
+
+    conf_matrix = torch.zeros(2,2, dtype=torch.int64)
+
+    for pred in preds:
+        i,j = pred.tolist()
+        conf_matrix[i,j] += 1
+    
+    conf_matrix = conf_matrix.float()
+    precision = conf_matrix[1, 1].item() / (conf_matrix[1, 0].item() + conf_matrix[1, 1].item() + 1e-12)
+    recall = conf_matrix[1, 1].item() / (conf_matrix[0, 1].item() + conf_matrix[1, 1].item() + 1e-12)
+    f1_score = (2.0 * precision * recall) / (precision + recall + 1e-12)
+
+    print('Confusion Matrix : ',conf_matrix)
+
+    return average_val_loss, precision, recall, f1_score

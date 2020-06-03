@@ -60,6 +60,14 @@ class MRData():
 
         self.labels = self.records['label'].tolist()
         
+        pos = sum(self.labels)
+        neg = len(self.labels) - pos
+        self.weights = torch.tensor([1., neg / pos])
+
+        print('+ve samples : ',pos)
+        print('-ve samples : ',neg)
+        print('These are the weights of class : ', self.weights)
+        
 
     def __len__(self):
         """Return the total number of images in the dataset."""
@@ -99,7 +107,7 @@ class MRData():
                 img_raw[plane] = np.stack((img_raw[plane],)*3, axis=1)
                 img_raw[plane] = torch.FloatTensor(img_raw[plane])
 
-        return [img_raw[plane] for plane in self.planes ], label
+        return [img_raw[plane] for plane in self.planes ], label, self.weights
 
     def pre_epoch_callback(self, epoch):
         """Callback to be called before every epoch.
