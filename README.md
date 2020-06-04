@@ -43,3 +43,5 @@ We will be using Resnet50 pretrained as a feature extractor. When we would have 
 
 We might even use a fixed batch size model for each plane and treat our data set as randomly distributed images for a plane. Anyways we have to figure out how to come up with an structure that aloows us to extract maximun info from the `MRIs`.
 
+# Link to notebook
+https://colab.research.google.com/drive/157nwJdcUAAfu1LMSqekPYDtuDqz4ZpHA?usp=sharing
