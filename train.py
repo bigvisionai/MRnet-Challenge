@@ -150,7 +150,7 @@ def get_lr(optimizer):
 
 
 def run(args):
-    log_root_folder = "./logs/{0}/{1}/".format(args.task, args.plane)
+    log_root_folder = "./runs/{0}/{1}/".format(args.task, args.plane)
     if args.flush_history == 1:
         objects = os.listdir(log_root_folder)
         for f in objects:
@@ -171,13 +171,13 @@ def run(args):
         transforms.Lambda(lambda x: x.repeat(3, 1, 1, 1).permute(1, 0, 2, 3)),
     ])
 
-    train_dataset = MRDataset('./data/', args.task,
+    train_dataset = MRDataset('./images/', args.task,
                               args.plane, transform=augmentor, train=True)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=1, shuffle=True, num_workers=11, drop_last=False)
 
     validation_dataset = MRDataset(
-        './data/', args.task, args.plane, train=False)
+        './images/', args.task, args.plane, train=False)
     validation_loader = torch.utils.data.DataLoader(
         validation_dataset, batch_size=1, shuffle=-True, num_workers=11, drop_last=False)
 
@@ -233,10 +233,10 @@ def run(args):
             best_val_auc = val_auc
             if bool(args.save_model):
                 file_name = f'model_{args.prefix_name}_{args.task}_{args.plane}_val_auc_{val_auc:0.4f}_train_auc_{train_auc:0.4f}_epoch_{epoch+1}.pth'
-                for f in os.listdir('./models/'):
+                for f in os.listdir('./weights/'):
                     if (args.task in f) and (args.plane in f) and (args.prefix_name in f):
-                        os.remove(f'./models/{f}')
-                torch.save(mrnet, f'./models/{file_name}')
+                        os.remove(f'./weights/{f}')
+                torch.save(mrnet, f'./weights/{file_name}')
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
