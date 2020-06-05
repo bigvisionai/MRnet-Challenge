@@ -14,13 +14,12 @@ Input params:
     config_file: Takes in configurations to train with 
 """
 
-def train(config : dict, export=True):
+def train(config : dict):
     """
     Function where actual training takes place
 
     Args:
         config (dict) : Configuration to train with
-        export (Boolean) : Whether to export model to disk or not
     """
     
     print('Starting to Train Model...')
@@ -89,11 +88,12 @@ def train(config : dict, export=True):
 
         if val_auc > best_val_auc:
             best_val_auc = val_auc
-            if bool(config['save_model']):
-                file_name = 'model_{}_{}_val_auc_{:0.4f}_train_auc_{:0.4f}_epoch_{}.pth'.format(config['exp_name'], config['task'], val_auc, train_auc, epoch+1)
-                torch.save({
-                    'model_state_dict': model.state_dict()
-                }, './weights/{}/{}'.format(config['task'],file_name))
+
+        if bool(config['save_model']):
+            file_name = 'model_{}_{}_val_auc_{:0.4f}_train_auc_{:0.4f}_epoch_{}.pth'.format(config['exp_name'], config['task'], val_auc, train_auc, epoch+1)
+            torch.save({
+                'model_state_dict': model.state_dict()
+            }, './weights/{}/{}'.format(config['task'],file_name))
 
     t_end_training = time.time()
     print(f'training took {t_end_training - t_start_training} s')

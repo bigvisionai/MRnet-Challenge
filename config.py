@@ -1,5 +1,5 @@
 config = {
-    'max_epoch' : 20,
+    'max_epoch' : 50,
     'log_train' : 100,
     'lr' : 1e-5,
     'starting_epoch' : 0,
