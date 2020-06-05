@@ -3,7 +3,7 @@ from models import MRnet
 from config import config
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils import _get_trainable_params, _run_eval
+from utils import _run_eval
 import time
 import torch.utils.data as data
 
@@ -26,26 +26,15 @@ def train(config : dict, export=True):
     
     print('Starting to Train Model...')
 
-    print('Loading Train Dataset...')
-    train_data = MRData(task='abnormal',train=True)
-    train_loader = data.DataLoader(
-        train_data, batch_size=1, num_workers=4, shuffle=True
-    )
-
-    print('Loading Validation Dataset...')
-    val_data = MRData(task='abnormal',train=False)
-    val_loader = data.DataLoader(
-        val_data, batch_size=1, num_workers=4, shuffle=False
-    )
+    train_loader, val_loader, train_wts, val_wts = load_data(config['task'])
 
     print('Initializing Model...')
     model = MRnet()
-    model.cuda()
+    model = model.cuda()
 
     print('Initializing Loss Method...')
     # TODO : maybe take a wiegthed loss
-    criterion = torch.nn.CrossEntropyLoss()
-    criterion.cuda()
+    criterion = torch.nn.
 
     print('Setup the Optimizer')
     # TODO : Add other hyperparams as well
@@ -108,13 +97,9 @@ def train(config : dict, export=True):
 
             # Log some info, TODO : add some graphs after some interval
             if num_batch % config['log_freq'] == 0:
-                print('{}/{} Epoch : {}/{} Batch Iter : Batch Loss {:.4f}'.format(
-                    epoch+1, num_epochs, num_batch+1, len(train_loader), loss.item()
+                print('{}/{} Epochs | {}/{} Batches | Batch Loss {:.4f} | lr = {}'.format(
+                    epoch+1, num_epochs, num_batch+1, len(train_loader), loss.item(), 
                 ))
-
-                print("output :",output)
-                print("label :",label)
-                print("####################################")
 
             num_batch += 1
 

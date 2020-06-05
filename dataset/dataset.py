@@ -3,11 +3,15 @@ import pandas as pd
 import numpy as np
 
 import torch
-import torch.nn.functional as F
-import torchvision.transforms.functional as TF
 import torch.utils.data as data
+
+from torchsample.transforms import RandomRotate, RandomTranslate, RandomFlip, ToTensor, Compose, RandomAffine
 from torchvision import transforms
-import cv2
+
+INPUT_DIM = 224
+MAX_PIXEL_VAL = 255
+MEAN = 58.09
+STDDEV = 49.73
 
 class MRData():
     """This class used to load MRnet dataset from `./images` dir
@@ -23,7 +27,7 @@ class MRData():
             transform : which transforms to apply
 
         """
-        self.planes=["axial","coronal","sagittal"]
+        self.planes=['axial', 'coronal', 'sagittal']
         self.records = None
         # an empty dictionary
         self.image_path={}
@@ -59,7 +63,19 @@ class MRData():
                           '.npy' for filename in self.records['id'].tolist()]
 
         self.labels = self.records['label'].tolist()
+
+        pos = sum(self.labels)
+        neg = len(self.labels) - pos
+
+        # Find the wieghts of pos and neg classes
+        if weights:
+            self.wieghts = torch.FloatTensor(weights)
+        else:
+            self.wieghts = torch.FloatTensor([neg / pos])
         
+        print('Number of -ve samples : ',neg)
+        print('Number of +ve samples : ',pos)
+        print('Weights for loss is : ', self.wieghts)
 
     def __len__(self):
         """Return the total number of images in the dataset."""
@@ -71,42 +87,56 @@ class MRData():
         where image is a list [imgsPlane1,imgsPlane2,imgsPlane3]
         and labels is a list [gt,gt,gt]
         """
-        img_raw={}
+        img_raw = {}
         
         for plane in self.planes:
             img_raw[plane] = np.load(self.paths[plane][index])
-
-            # array to collect new resized images
-            new = []
-            
-            for i in range(img_raw[plane].shape[0]):
-                inter = cv2.resize(img_raw[plane][i],(224,224), interpolation=cv2.INTER_AREA)
-                inter_ = np.zeros((224,224))
-                inter_ = cv2.normalize(inter, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-                new.append(inter_)
-            
-            img_raw[plane]=np.array(new)   
+            img_raw[plane] = self._resize_image(img_raw[plane])
             
         label = self.labels[index]
+        label = torch.FloatTensor(label)
+
+        return [img_raw[plane] for plane in self.planes], label
+
+    def _resize_image(self, image):
+        """Resize the image to `(3,224,224)` and apply 
+        transforms if possible.
+        """
+        # Resize the image
+        pad = int((image.shape[2] - INPUT_DIM)/2)
+        image = image[:,pad:-pad,pad:-pad]
+        image = (image-np.min(image))/(np.max(image)-np.min(image))*MAX_PIXEL_VAL
+        image = (image - MEAN) / STDDEV
+
+        if self.transform:
+            image = self.transform(image)
+        else:
+            image = np.stack((image,)*3, axis=1)
         
-        # apply transforms if possible, or else stack 3 images together
-        # Note : if applying any transformation, use 3 to generate 3 images
-        # but they should be almost similar to each other
-        for plane in self.planes:
-            if self.transform:
-                img_raw[plane] = self.transform(img_raw[plane])
-            else:
-                img_raw[plane] = np.stack((img_raw[plane],)*3, axis=1)
-                img_raw[plane] = torch.FloatTensor(img_raw[plane])
+        image = torch.FloatTensor(image)
+        return image
 
-        return [img_raw[plane] for plane in self.planes ], label
+def load_data(task : str):
 
-    def pre_epoch_callback(self, epoch):
-        """Callback to be called before every epoch.
-        """
-        pass
+    # Define the Augmentation here only
+    augments = Compose([
+        transforms.Lambda(lambda x: torch.Tensor(x)),
+        RandomRotate(25),
+        RandomTranslate([0.11, 0.11]),
+        RandomFlip(),
+        transforms.Lambda(lambda x: x.repeat(3, 1, 1, 1).permute(1, 0, 2, 3)),
+    ])
 
-    def post_epoch_callback(self, epoch):
-        """Callback to be called after every epoch.
-        """
-        pass
+    print('Loading Train Dataset of {} task...'.format(task))
+    train_data = MRData(task, train=True, transform=augments)
+    train_loader = data.DataLoader(
+        train_data, batch_size=1, num_workers=11, shuffle=True
+    )
+
+    print('Loading Validation Dataset of {} task...'.format(task))
+    val_data = MRData(task, train=False)
+    val_loader = data.DataLoader(
+        val_data, batch_size=1, num_workers=11, shuffle=False
+    )
+
+    return train_loader, val_loader, train_data.weights, val_data.wieghts
