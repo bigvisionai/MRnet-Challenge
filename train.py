@@ -6,6 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils import _train_model, _evaluate_model, _get_lr
 import time
 import torch.utils.data as data
+import os
 
 """Performs training of a specified model.
     

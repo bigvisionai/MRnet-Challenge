@@ -39,7 +39,7 @@ def _evaluate_model(model, val_loader, criterion, epoch, num_epochs, writer, cur
         y_probs.append(probas.item())
 
         try:
-            auc = metrics.roc_auc_score(y_trues, y_preds)
+            auc = metrics.roc_auc_score(y_gt, y_probs)
         except:
             auc = 0.5
 

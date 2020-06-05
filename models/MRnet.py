@@ -16,8 +16,12 @@ class MRnet(nn.Module):
         self.coronal = models.alexnet(pretrained=True).features
         self.saggital = models.alexnet(pretrained=True).features
 
+        self.pool_axial = nn.AdaptiveAvgPool2d(1)
+        self.pool_coronal = nn.AdaptiveAvgPool2d(1)
+        self.pool_saggital = nn.AdaptiveAvgPool2d(1)
+
         self.fc = nn.Sequential(
-            nn.Linear(in_features=3*512,out_features=1)
+            nn.Linear(in_features=3*256,out_features=1)
         )
 
     def forward(self,x):
@@ -30,9 +34,13 @@ class MRnet(nn.Module):
         # is only one patient in each batch
         images = [torch.squeeze(img, dim=0) for img in x]
 
-        image1 = self.axial(images[0]).view(-1,512)
-        image2 = self.coronal(images[1]).view(-1,512)
-        image3 = self.saggital(images[2]).view(-1,512)
+        image1 = self.axial(images[0])
+        image2 = self.coronal(images[1])
+        image3 = self.saggital(images[2])
+
+        image1 = self.pool_axial(image1).view(image1.size(0), -1)
+        image2 = self.pool_coronal(image2).view(image2.size(0), -1)
+        image3 = self.pool_saggital(image3).view(image3.size(0), -1)
 
         image1 = torch.max(image1,dim=0,keepdim=True)[0]
         image2 = torch.max(image2,dim=0,keepdim=True)[0]

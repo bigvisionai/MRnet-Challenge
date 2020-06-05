@@ -7,5 +7,7 @@ config = {
     'log_val' : 10,
     'task' : 'acl',
     'weight_decay' : 0.01,
-    'patience' : 5
+    'patience' : 5,
+    'save_model' : 1,
+    'exp_name' : 'test'
 }
