@@ -13,6 +13,6 @@ train_loader, _, wts, _ = load_data(task = 'acl')
 for x,y in train_loader:
 
     print(x[0].shape)
-    print(y[0])
+    print(y)
     print(wts)
     break

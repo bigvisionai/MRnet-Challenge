@@ -25,7 +25,7 @@ class MRData():
             task : for which task to load the labels
             train : whether to load the train or val data
             transform : which transforms to apply
-
+            weights (Tensor) : Give wieghted loss to postive class eg. `weights=torch.tensor([2.223])`
         """
         self.planes=['axial', 'coronal', 'sagittal']
         self.records = None

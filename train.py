@@ -1,4 +1,4 @@
-from dataset import MRData
+from dataset import load_data
 from models import MRnet
 from config import config
 import torch
@@ -12,8 +12,6 @@ import torch.utils.data as data
 Input params:
     config_file: Takes in configurations to train with 
 """
-
-# TODO : Add proper checks for gpu
 
 def train(config : dict, export=True):
     """
@@ -32,9 +30,16 @@ def train(config : dict, export=True):
     model = MRnet()
     if torch.cuda.is_available():
         model = model.cuda()
+        train_wts = train_wts.cuda()
+        val_wts = val_wts.cuda()
 
     print('Initializing Loss Method...')
-    criterion = torch.nn.BCEWithLogitsLoss(weight=train_wts)
+    criterion = torch.nn.BCEWithLogitsLoss(pos_weight=train_wts)
+    val_criterion = torch.nn.BCEWithLogitsLoss(pos_weight=val_wts)
+
+    if torch.cuda.is_available():
+        criterion = criterion.cuda()
+        val_criterion = val_criterion.cuda()
 
     print('Setup the Optimizer')
     optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
@@ -53,17 +58,21 @@ def train(config : dict, export=True):
 
     print('Starting Training')
 
-    writer = SummaryWriter(comment=f'lr={config['lr']} task={config['task']}')
+    writer = SummaryWriter(comment='lr={} task={}'.format(config['lr'], config['task']))
 
     for epoch in range(starting_epoch, num_epochs):
 
+        current_lr = _get_lr(optimizer)
         epoch_start_time = time.time()  # timer for entire epoch
 
         train_loss, train_auc = _train_model(
-            model, train_loader, epoch, num_epochs, optimizer, writer, current_lr, log_train)
+            model, train_loader, epoch, num_epochs, optimizer, criterion, writer, current_lr, log_train)
 
         val_loss, val_auc = _evaluate_model(
-            model, val_loader, epoch, num_epochs, writer, current_lr, log_val)
+            model, val_loader, val_criterion,  epoch, num_epochs, writer, current_lr, log_val)
+
+        writer.add_scalar('Train/Avg Loss', train_loss, epoch)
+        writer.add_scalar('Val/Avg Loss', val_loss, epoch)
 
         scheduler.step(val_loss)
 
@@ -76,16 +85,18 @@ def train(config : dict, export=True):
         iteration_change_loss += 1
         print('-' * 30)
 
+        writer.flush()
+
         if val_auc > best_val_auc:
             best_val_auc = val_auc
             if bool(config['save_model']):
-                file_name = f'model_{config['exp_name']}_{config['task']}_val_auc_{val_auc:0.4f}_train_auc_{train_auc:0.4f}_epoch_{epoch+1}.pth'
+                file_name = 'model_{}_{}_val_auc_{:0.4f}_train_auc_{:0.4f}_epoch_{}.pth'.format(config['exp_name'], config['task'], val_auc, train_auc, epoch+1)
                 for f in os.listdir('./weights/'):
                     if (config['task'] in f) and (config['exp_name'] in f):
-                        os.remove(f'./weights/{f}')
+                        os.remove('./weights/{}'.format(f))
                 torch.save({
                     'model_state_dict': model.state_dict()
-                }, f'./weights/{file_name}')
+                }, './weights/{}'.format(file_name))
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -98,6 +109,8 @@ def train(config : dict, export=True):
 
     t_end_training = time.time()
     print(f'training took {t_end_training - t_start_training} s')
+    writer.flush()
+    writer.close()
 
 if __name__ == '__main__':
 

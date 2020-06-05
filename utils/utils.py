@@ -20,13 +20,11 @@ def _evaluate_model(model, val_loader, criterion, epoch, num_epochs, writer, cur
     y_gt = []
     losses = []
 
-    for i, (image, label) in enumerate(val_loader):
+    for i, (images, label) in enumerate(val_loader):
 
         if torch.cuda.is_available():
             images = [image.cuda() for image in images]
             label = label.cuda()
-
-        label = label[0]
 
         output = model(images)
 
@@ -83,8 +81,6 @@ def _train_model(model, train_loader, epoch, num_epochs, optimizer, criterion, w
         if torch.cuda.is_available():
             images = [image.cuda() for image in images]
             label = label.cuda()
-
-        label = label[0]
 
         output = model(images)
 
