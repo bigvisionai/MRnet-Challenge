@@ -93,7 +93,11 @@ class MRData():
             img_raw[plane] = np.load(self.paths[plane][index])
             img_raw[plane] = self._resize_image(img_raw[plane])
             
-        label = float(self.labels[index])
+        label = self.labels[index]
+        if label == 1:
+            label = torch.FloatTensor([1])
+        elif label == 0:
+            label = torch.FloatTensor([0])
 
         return [img_raw[plane] for plane in self.planes], label
 

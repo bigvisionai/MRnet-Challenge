@@ -3,7 +3,7 @@ from models import MRnet
 from config import config
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils import _run_eval
+from utils import _train_model, _evaluate_model, _get_lr
 import time
 import torch.utils.data as data
 
@@ -30,110 +30,74 @@ def train(config : dict, export=True):
 
     print('Initializing Model...')
     model = MRnet()
-    model = model.cuda()
+    if torch.cuda.is_available():
+        model = model.cuda()
 
     print('Initializing Loss Method...')
-    # TODO : maybe take a wiegthed loss
-    criterion = torch.nn.
+    criterion = torch.nn.BCEWithLogitsLoss(weight=train_wts)
 
     print('Setup the Optimizer')
-    # TODO : Add other hyperparams as well
-    optimizer = torch.optim.Adam(model.parameters(),lr=config['lr'])
-    scheduleLR=torch.optim.lr_scheduler.StepLR(optimizer,step_size=5,gamma=0.5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, patience=3, factor=.3, threshold=1e-4, verbose=True)
+    
     starting_epoch = config['starting_epoch']
     num_epochs = config['max_epoch']
+    patience = config['patience']
+    log_train = config['log_train']
+    log_val = config['log_val']
+    iteration_change_loss = 0
 
-    best_accuracy = 0.0
+    best_val_loss = float('inf')
+    best_val_auc = float(0)
 
     print('Starting Training')
 
-    writer=SummaryWriter(comment=f'lr={config["lr"]}')
-    # TODO : add tqdm with support with notebook
+    writer = SummaryWriter(comment=f'lr={config['lr']} task={config['task']}')
+
     for epoch in range(starting_epoch, num_epochs):
 
         epoch_start_time = time.time()  # timer for entire epoch
 
-        train_iterations = len(train_loader)
-        train_batch_size = config['batch_size']
+        train_loss, train_auc = _train_model(
+            model, train_loader, epoch, num_epochs, optimizer, writer, current_lr, log_train)
 
-        num_batch = 0
+        val_loss, val_auc = _evaluate_model(
+            model, val_loader, epoch, num_epochs, writer, current_lr, log_val)
 
-        # loss for the epoch
-        total_loss = 0.0
+        scheduler.step(val_loss)
 
-        model.train()
+        t_end = time.time()
+        delta = t_end - epoch_start_time
 
-        # TODO : add tqdm here as well ? or time remaining ?
-        for i,batch in enumerate (train_loader):
+        print("train loss : {0} | train auc {1} | val loss {2} | val auc {3} | elapsed time {4} s".format(
+            train_loss, train_auc, val_loss, val_auc, delta))
 
-            images, label = batch
+        iteration_change_loss += 1
+        print('-' * 30)
 
-            images = [img.cuda() for img in images]
-            label = label.cuda()
+        if val_auc > best_val_auc:
+            best_val_auc = val_auc
+            if bool(config['save_model']):
+                file_name = f'model_{config['exp_name']}_{config['task']}_val_auc_{val_auc:0.4f}_train_auc_{train_auc:0.4f}_epoch_{epoch+1}.pth'
+                for f in os.listdir('./weights/'):
+                    if (config['task'] in f) and (config['exp_name'] in f):
+                        os.remove(f'./weights/{f}')
+                torch.save({
+                    'model_state_dict': model.state_dict()
+                }, f'./weights/{file_name}')
 
-            # zero out all grads
-            # criterion.zero_grad()
-            optimizer.zero_grad()
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            iteration_change_loss = 0
 
-            # TODO: Add some visualiser maybe
+        if iteration_change_loss == patience:
+            print('Early stopping after {0} iterations without the decrease of the val loss'.
+                  format(iteration_change_loss))
+            break
 
-            output = model(images)
-
-            # Calculate Loss cross Entropy
-            loss = criterion(output, label)
-            # TODO : Add loss in TensorBoard
-
-            # add loss to epoch loss
-            total_loss += loss.item()
-
-            # Do backpropogation
-            loss.backward()
-
-            # Change wieghts
-            optimizer.step()
-            for name,params in model.named_parameters():
-                writer.add_histogram(name,params,i)
-                # writer.add_histogram(name+"grads",params.grad,i)
-
-            # Log some info, TODO : add some graphs after some interval
-            if num_batch % config['log_freq'] == 0:
-                print('{}/{} Epochs | {}/{} Batches | Batch Loss {:.4f} | lr = {}'.format(
-                    epoch+1, num_epochs, num_batch+1, len(train_loader), loss.item(), 
-                ))
-
-            num_batch += 1
-
-        # Updating LR
-        scheduleLR.step()
-
-        # spit train loss details
-        average_train_loss = total_loss / len(train_loader)
-        print('Average Train Loss at Epoch {} : {:.4f}'.format(epoch+1, average_train_loss))
-        writer.add_scalar("Train/Avg Loss",average_train_loss,epoch)
-        writer.add_scalar("Train/Total Loss",total_loss,epoch)
-        # Calc validation results    
-        # Print details about end of epoch
-        validation_loss, accuracy = _run_eval(model, val_loader, criterion, config)
-        writer.add_scalar("Val/Loss",validation_loss,epoch)
-        writer.add_scalar("Val/Accuracy",accuracy,epoch)
-
-        print('Average Validation Loss at Epoch {} : {:.4f}'.format(epoch+1, validation_loss))
-        print('Validation Accuracy at Epoch {} : {:.4f}'.format(epoch+1, accuracy))
-
-        # TODO : Print details about end of epoch and add it to tensorboard
-        # Accuracy, Train Loss, Val Loss, Learning Rate
-
-        if best_accuracy < accuracy :
-            best_accuracy = accuracy
-            # Save this model
-            if export:
-                model._save_model(criterion, optimizer, best_accuracy, config, epoch)
-        
-        # TODO : Change LR depending upon epoch, LR
-
-        total_loss = 0.0
-        print('End of epoch {0} / {1} \t Time Taken: {2} sec'.format(epoch+1, num_epochs, time.time() - epoch_start_time))
-    writer.close()
+    t_end_training = time.time()
+    print(f'training took {t_end_training - t_start_training} s')
 
 if __name__ == '__main__':
 

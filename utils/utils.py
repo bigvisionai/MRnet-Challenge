@@ -1,5 +1,6 @@
 import torch
 from sklearn import metrics
+import numpy as np
 
 def _get_trainable_params(model):
     """Get Parameters with `requires.grad` set to `True`"""
@@ -19,7 +20,7 @@ def _evaluate_model(model, val_loader, criterion, epoch, num_epochs, writer, cur
     y_gt = []
     losses = []
 
-    for i, (image, label, weight) in enumerate(val_loader):
+    for i, (image, label) in enumerate(val_loader):
 
         if torch.cuda.is_available():
             images = [image.cuda() for image in images]
@@ -64,6 +65,7 @@ def _evaluate_model(model, val_loader, criterion, epoch, num_epochs, writer, cur
 
     val_loss_epoch = np.round(np.mean(losses), 4)
     val_auc_epoch = np.round(auc, 4)
+
     return val_loss_epoch, val_auc_epoch
 
 def _train_model(model, train_loader, epoch, num_epochs, optimizer, criterion, writer, current_lr, log_every=100):
@@ -124,4 +126,9 @@ def _train_model(model, train_loader, epoch, num_epochs, optimizer, criterion, w
 
     train_loss_epoch = np.round(np.mean(losses), 4)
     train_auc_epoch = np.round(auc, 4)
+
     return train_loss_epoch, train_auc_epoch
+
+def _get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
