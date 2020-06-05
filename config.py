@@ -5,7 +5,7 @@ config = {
     'starting_epoch' : 0,
     'batch_size' : 1,
     'log_val' : 10,
-    'task' : 'acl',
+    'task' : 'abnormal',
     'weight_decay' : 0.01,
     'patience' : 5,
     'save_model' : 1,

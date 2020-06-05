@@ -52,7 +52,6 @@ def train(config : dict, export=True):
     patience = config['patience']
     log_train = config['log_train']
     log_val = config['log_val']
-    iteration_change_loss = 0
 
     best_val_loss = float('inf')
     best_val_auc = float(0)
@@ -60,6 +59,7 @@ def train(config : dict, export=True):
     print('Starting Training')
 
     writer = SummaryWriter(comment='lr={} task={}'.format(config['lr'], config['task']))
+    t_start_training = time.time()
 
     for epoch in range(starting_epoch, num_epochs):
 
@@ -83,7 +83,6 @@ def train(config : dict, export=True):
         print("train loss : {0} | train auc {1} | val loss {2} | val auc {3} | elapsed time {4} s".format(
             train_loss, train_auc, val_loss, val_auc, delta))
 
-        iteration_change_loss += 1
         print('-' * 30)
 
         writer.flush()
@@ -92,21 +91,9 @@ def train(config : dict, export=True):
             best_val_auc = val_auc
             if bool(config['save_model']):
                 file_name = 'model_{}_{}_val_auc_{:0.4f}_train_auc_{:0.4f}_epoch_{}.pth'.format(config['exp_name'], config['task'], val_auc, train_auc, epoch+1)
-                for f in os.listdir('./weights/'):
-                    if (config['task'] in f) and (config['exp_name'] in f):
-                        os.remove('./weights/{}'.format(f))
                 torch.save({
                     'model_state_dict': model.state_dict()
-                }, './weights/{}'.format(file_name))
-
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            iteration_change_loss = 0
-
-        if iteration_change_loss == patience:
-            print('Early stopping after {0} iterations without the decrease of the val loss'.
-                  format(iteration_change_loss))
-            break
+                }, './weights/{}/{}'.format(config['task'],file_name))
 
     t_end_training = time.time()
     print(f'training took {t_end_training - t_start_training} s')
