@@ -20,7 +20,7 @@ class MRData():
     def __init__(self,task = 'acl', train = True, transform = None, weights = None):
         """Initialize the dataset
 
-        Args :
+        Args:
             plane : along which plane to load the data
             task : for which task to load the labels
             train : whether to load the train or val data
@@ -69,13 +69,13 @@ class MRData():
 
         # Find the wieghts of pos and neg classes
         if weights:
-            self.wieghts = torch.FloatTensor(weights)
+            self.weights = torch.FloatTensor(weights)
         else:
-            self.wieghts = torch.FloatTensor([neg / pos])
+            self.weights = torch.FloatTensor([neg / pos])
         
-        print('Number of -ve samples : ',neg)
-        print('Number of +ve samples : ',pos)
-        print('Weights for loss is : ', self.wieghts)
+        print('Number of -ve samples : ', neg)
+        print('Number of +ve samples : ', pos)
+        print('Weights for loss is : ', self.weights)
 
     def __len__(self):
         """Return the total number of images in the dataset."""
@@ -93,8 +93,7 @@ class MRData():
             img_raw[plane] = np.load(self.paths[plane][index])
             img_raw[plane] = self._resize_image(img_raw[plane])
             
-        label = self.labels[index]
-        label = torch.FloatTensor(label)
+        label = float(self.labels[index])
 
         return [img_raw[plane] for plane in self.planes], label
 
@@ -130,13 +129,13 @@ def load_data(task : str):
     print('Loading Train Dataset of {} task...'.format(task))
     train_data = MRData(task, train=True, transform=augments)
     train_loader = data.DataLoader(
-        train_data, batch_size=1, num_workers=11, shuffle=True
+        train_data, batch_size=1, num_workers=4, shuffle=True
     )
 
     print('Loading Validation Dataset of {} task...'.format(task))
     val_data = MRData(task, train=False)
     val_loader = data.DataLoader(
-        val_data, batch_size=1, num_workers=11, shuffle=False
+        val_data, batch_size=1, num_workers=4, shuffle=False
     )
 
-    return train_loader, val_loader, train_data.weights, val_data.wieghts
+    return train_loader, val_loader, train_data.weights, val_data.weights
