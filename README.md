@@ -1,12 +1,22 @@
-# MRNet-LearnopenCV
+
+# Stanford MRnet Challenge
 This repo contains code for the MRNet Challenge
 
 For more details refer to https://stanfordmlgroup.github.io/competitions/mrnet/
 
-# Folder Structure to be maintained
+# Instructions to run the training
+1. Clone the repository.
 
-put `train` and `valid` folder inside `images` folder at root directory. Also put all labels inside
-`images` folder.
+2. Download the dataset (~5.7 GB), and put `train` and `valid` folders along with all the the `.csv` files inside `images` folder at root directory. 
+
+3. Make a new folder called `weights` at root directory, and inside the `weights` folder create three more folders namely `acl`, `abnormal` and `meniscus`.
+
+4. All the hyperparameters are defined in `config.py` file. Feel free to play around those.
+
+5. Now finally run the training using `python train.py`. All the logs for tensorboard will be stored in the `runs` directory at the root of the project.
+
+# Our results
+TODO
 
 # Understanding the Dataset
 
@@ -27,21 +37,21 @@ Place 3 with 35 slices
 
 Each MRI has to be classisifed against 3 diseases
 
-# Approach for the model
-
-Major challenge with while selectingt the model structure was the inconsistency in the data. Although the image size remains constant , the number of slices per plane are variable within a single MRI and varies across all MRIs.
+Major challenge with while selecting the model structure was the inconsistency in the data. Although the image size remains constant , the number of slices per plane are variable within a single MRI and varies across all MRIs.
 
 So we are proposing a model for each plane. For each model the `batch size` will be variable and equal to `number of slices in the plane of the MRI`. So training each model, we will get features for each plane.
 
-We also plan to have 3 separate models for each disease. --NEEDS TO BE DISCUSSED
+We also plan to have 3 separate models for each disease. 
 
-# Internals of the Model
+# Model Specifications
+We will be using Alexnet pretrained as a feature extractor. When we would have trained the 3 models on the 3 planes, we will use its feature extractor layer as an input to a `global` model for the final classification
 
-We will be using Resnet50 pretrained as a feature extractor. When we would have trained the 3 models on the 3 planes, we will use its feature extractor layer as an input to a `global` model for the final classification
-
-# Another discussion
-
-We might even use a fixed batch size model for each plane and treat our data set as randomly distributed images for a plane. Anyways we have to figure out how to come up with an structure that aloows us to extract maximun info from the `MRIs`.
 
 # Link to Notebook
+Here is the link to the notebook where we run our code :
 https://colab.research.google.com/drive/157nwJdcUAAfu1LMSqekPYDtuDqz4ZpHA?usp=sharing
+
+# TODOs
+1. Add results to the readme
+2. add code to save model when required, right now model is saved after every epoch.
+3. update readme with correct model specifications.
