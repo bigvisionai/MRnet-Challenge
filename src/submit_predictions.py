@@ -59,9 +59,9 @@ if __name__ == '__main__':
     # Loading all models
     diseases = ['abnormal','acl','meniscus']
     model_paths = [
-        './weights/model_final_train_abnormal_val_auc_0.9394_train_auc_0.9379_epoch_30.pth', 
-        './weights/model_final_train_acl_val_auc_0.9602_train_auc_0.9956_epoch_32.pth', 
-        './weights/model_final_train_meniscus_val_auc_0.7837_train_auc_0.9161_epoch_30.pth'
+        './src/model_final_train_abnormal_val_auc_0.9394_train_auc_0.9379_epoch_30.pth', 
+        './src/model_final_train_acl_val_auc_0.9602_train_auc_0.9956_epoch_32.pth', 
+        './src/model_final_train_meniscus_val_auc_0.7837_train_auc_0.9161_epoch_30.pth'
     ]
 
     for model_path, disease in zip(model_paths,diseases):
