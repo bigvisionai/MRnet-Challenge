@@ -12,9 +12,9 @@ class MRnet(nn.Module):
         super(MRnet,self).__init__()
 
         # init three backbones for three axis
-        self.axial = models.alexnet(pretrained=True).features
-        self.coronal = models.alexnet(pretrained=True).features
-        self.saggital = models.alexnet(pretrained=True).features
+        self.axial = models.alexnet(pretrained=False).features
+        self.coronal = models.alexnet(pretrained=False).features
+        self.saggital = models.alexnet(pretrained=False).features
 
         self.pool_axial = nn.AdaptiveAvgPool2d(1)
         self.pool_coronal = nn.AdaptiveAvgPool2d(1)
