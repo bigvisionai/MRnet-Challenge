@@ -32,17 +32,18 @@ print(len(val_loader))
 
 criterion = torch.nn.BCEWithLogitsLoss(pos_weight=train_wts).cuda()
 
-for images, label in train_loader:
+for i, (images, label) in enumerate(train_loader):
     # output = model(images)
     if torch.cuda.is_available():
             images = [image.cuda() for image in images]
             label = label.cuda()
-    print(label)
-    print(images[0].shape)
+    # print(label)
+    # print(images[0].shape)
 
-    out = model(images)
-    print(out)
-    print(label)
-    print(criterion(out,label))
-    break
+    # out = model(images)
+    # print(out)
+    # print(label)
+    # print(criterion(out,label))
+    # break
     # print(output)
+    print(i)

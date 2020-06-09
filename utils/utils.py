@@ -35,16 +35,16 @@ def _evaluate_model(model, val_loader, criterion, epoch, num_epochs, writer, cur
 
         probas = torch.sigmoid(output)
 
-        for i, x in enumerate(label[0]):
-            y_gt[i].append(int(label[0][i].item()))
+        for j, x in enumerate(label[0]):
+            y_gt[j].append(int(label[0][j].item()))
         
-        for i, x in enumerate(probas[0]):
-            y_probs[i].append(int(probas[0][i].item()))
+        for j, x in enumerate(probas[0]):
+            y_probs[j].append(probas[0][j].item())
 
         aucs = []
-        for i in range(3):
+        for j in range(3):
             try:
-                aucs.append(metrics.roc_auc_score(y_gt[i], y_probs[i]))
+                aucs.append(metrics.roc_auc_score(y_gt[j], y_probs[j]))
             except:
                 aucs.append(0.5)
 
@@ -70,7 +70,17 @@ def _evaluate_model(model, val_loader, criterion, epoch, num_epochs, writer, cur
                   )
                   )
 
-    writer.add_scalar('Val/AUC_epoch', np.mean(aucs), epoch + i)
+    writer.add_scalar('Val/AUC_epoch', np.mean(aucs), epoch)
+    writer.add_scalar('Val/AUC_epoch_abnormal', aucs[0], epoch)
+    writer.add_scalar('Val/AUC_epoch_acl', aucs[1], epoch)
+    writer.add_scalar('Val/AUC_epoch_meniscus', aucs[2], epoch)
+
+    print('Epoch {} End Val Avg AUC : {} abnorm : {} acl : {} meni : {}'.format(epoch, 
+                                                                            np.round(np.mean(aucs), 4), 
+                                                                            np.round(aucs[0], 4),
+                                                                            np.round(aucs[1], 4),
+                                                                            np.round(aucs[2], 4),))
+    
 
     val_loss_epoch = np.round(np.mean(losses), 4)
     val_auc_epoch = np.round(np.mean(aucs), 4)
@@ -104,18 +114,21 @@ def _train_model(model, train_loader, epoch, num_epochs, optimizer, criterion, w
 
         probas = torch.sigmoid(output)
 
-        for i, x in enumerate(label[0]):
-            y_gt[i].append(int(label[0][i].item()))
+        for j, x in enumerate(label[0]):
+            y_gt[j].append(int(label[0][j].item()))
         
-        for i, x in enumerate(probas[0]):
-            y_probs[i].append(int(probas[0][i].item()))
+        for j, x in enumerate(probas[0]):
+            y_probs[j].append(probas[0][j].item())
 
         aucs = []
-        for i in range(3):
+        for j in range(3):
             try:
-                aucs.append(metrics.roc_auc_score(y_gt[i], y_probs[i]))
+                aucs.append(metrics.roc_auc_score(y_gt[j], y_probs[j]))
             except:
+                # print("nope")
+                # print(y_gt, y_probs)
                 aucs.append(0.5)
+        
 
         writer.add_scalar('Train/Loss', loss_value,
                           epoch * len(train_loader) + i)
@@ -123,6 +136,7 @@ def _train_model(model, train_loader, epoch, num_epochs, optimizer, criterion, w
         writer.add_scalar('Train/AUC_abnormal', aucs[0], epoch * len(train_loader) + i)
         writer.add_scalar('Train/AUC_acl', aucs[1], epoch * len(train_loader) + i)
         writer.add_scalar('Train/AUC_meniscus', aucs[2], epoch * len(train_loader) + i)
+
 
         if (i % log_every == 0) & (i > 0):
             print('''[Epoch: {0} / {1} | Batch : {2} / {3} ]| Avg Train Loss {4} | Train Avg AUC : {5} abnorm:{6} acl:{7} meni:{8} | lr : {9}'''.
@@ -140,10 +154,19 @@ def _train_model(model, train_loader, epoch, num_epochs, optimizer, criterion, w
                   )
                   )
 
-    writer.add_scalar('Train/AUC_epoch', np.mean(aucs), epoch + i)
+    writer.add_scalar('Train/AUC_epoch', np.mean(aucs), epoch)
+    writer.add_scalar('Train/AUC_epoch_abnormal', aucs[0], epoch)
+    writer.add_scalar('Train/AUC_epoch_acl', aucs[1], epoch)
+    writer.add_scalar('Train/AUC_epoch_meniscus', aucs[2], epoch)
 
     train_loss_epoch = np.round(np.mean(losses), 4)
     train_auc_epoch = np.round(np.mean(aucs), 4)
+
+    print('Epoch {} End Train Avg AUC : {} abnorm : {} acl : {} meni : {}'.format(epoch, 
+                                                                            np.round(np.mean(aucs), 4), 
+                                                                            np.round(aucs[0], 4),
+                                                                            np.round(aucs[1], 4),
+                                                                            np.round(aucs[2], 4),))
 
     return train_loss_epoch, train_auc_epoch
 

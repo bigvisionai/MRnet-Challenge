@@ -141,13 +141,13 @@ def load_data(task : str):
     print('Loading Train Dataset of {} task...'.format(task))
     train_data = MRData(task, train=True, transform=augments)
     train_loader = data.DataLoader(
-        train_data, batch_size=1, num_workers=0, shuffle=True
+        train_data, batch_size=1, num_workers=4, shuffle=True
     )
 
     print('Loading Validation Dataset of {} task...'.format(task))
     val_data = MRData(task, train=False)
     val_loader = data.DataLoader(
-        val_data, batch_size=1, num_workers=0, shuffle=False
+        val_data, batch_size=1, num_workers=4, shuffle=False
     )
 
     return train_loader, val_loader, train_data.weights, val_data.weights

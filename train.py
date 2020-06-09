@@ -65,9 +65,11 @@ def train(config : dict):
         current_lr = _get_lr(optimizer)
         epoch_start_time = time.time()  # timer for entire epoch
 
+        print('Started Training')
         train_loss, train_auc = _train_model(
-            model, train_loader, epoch, num_epochs, optimizer, criterion, writer, current_lr, log_train)
+            model, train_loader, epoch, num_epochs, optimizer, criterion, writer, current_lr, log_every=log_train)
 
+        print('train loop ended, now val')
         val_loss, val_auc = _evaluate_model(
             model, val_loader, val_criterion,  epoch, num_epochs, writer, current_lr, log_val)
 
