@@ -28,12 +28,14 @@ class MRData():
             weights (Tensor) : Give wieghted loss to postive class eg. `weights=torch.tensor([2.223])`
         """
         self.planes=['axial', 'coronal', 'sagittal']
-        self.records = None
+        self.diseases = ['abnormal','acl','meniscus']
+        self.records = {'abnormal' : None, 'acl' : None, 'meniscus' : None}
         # an empty dictionary
         self.image_path={}
         
         if train:
-            self.records = pd.read_csv('./images/train-{}.csv'.format(task),header=None, names=['id', 'label'])
+            for disease in self.diseases:
+                self.records[disease] = pd.read_csv('./images/train-{}.csv'.format(disease),header=None, names=['id', 'label'])
 
             '''
             self.image_path[<plane>]= dictionary {<plane>: path to folder containing
@@ -42,8 +44,9 @@ class MRData():
             for plane in self.planes:
                 self.image_path[plane] = './images/train/{}/'.format(plane)
         else:
-            transform = None
-            self.records = pd.read_csv('./images/valid-{}.csv'.format(task),header=None, names=['id', 'label'])
+            for disease in self.diseases:
+                self.records[disease] = pd.read_csv('./images/valid-{}.csv'.format(disease),header=None, names=['id', 'label'])
+
             '''
             self.image_path[<plane>]= dictionary {<plane>: path to folder containing
                                                                 image for that plane}
@@ -54,32 +57,37 @@ class MRData():
         
         self.transform = transform 
 
-        self.records['id'] = self.records['id'].map(
-            lambda i: '0' * (4 - len(str(i))) + str(i))
+        for disease in self.diseases:
+            self.records[disease]['id'] = self.records[disease]['id'].map(
+                lambda i: '0' * (4 - len(str(i))) + str(i))
+        
         # empty dictionary
         self.paths={}    
         for plane in self.planes:
             self.paths[plane] = [self.image_path[plane] + filename +
-                          '.npy' for filename in self.records['id'].tolist()]
+                        '.npy' for filename in self.records['acl']['id'].tolist()]
 
-        self.labels = self.records['label'].tolist()
+        self.labels = {'abnormal' : None, 'acl' : None, 'meniscus' : None}
+        for disease in self.diseases:
+            self.labels[disease] = self.records[disease]['label'].tolist()
 
-        pos = sum(self.labels)
-        neg = len(self.labels) - pos
+        weights_ = []
+        for disease in self.diseases:
+            pos = sum(self.labels[disease])
+            neg = len(self.labels[disease]) - pos
+            weights_.append(neg/pos)
 
         # Find the wieghts of pos and neg classes
         if weights:
             self.weights = torch.FloatTensor(weights)
         else:
-            self.weights = torch.FloatTensor([neg / pos])
+            self.weights = torch.FloatTensor(weights_)
         
-        print('Number of -ve samples : ', neg)
-        print('Number of +ve samples : ', pos)
         print('Weights for loss is : ', self.weights)
 
     def __len__(self):
         """Return the total number of images in the dataset."""
-        return len(self.records)
+        return len(self.records['acl'])
 
     def __getitem__(self, index):
         """
@@ -93,11 +101,11 @@ class MRData():
             img_raw[plane] = np.load(self.paths[plane][index])
             img_raw[plane] = self._resize_image(img_raw[plane])
             
-        label = self.labels[index]
-        if label == 1:
-            label = torch.FloatTensor([1])
-        elif label == 0:
-            label = torch.FloatTensor([0])
+        label = []
+        for disease in self.diseases:
+            label.append(self.labels[disease][index])
+
+        label = torch.FloatTensor(label)
 
         return [img_raw[plane] for plane in self.planes], label
 
@@ -133,13 +141,13 @@ def load_data(task : str):
     print('Loading Train Dataset of {} task...'.format(task))
     train_data = MRData(task, train=True, transform=augments)
     train_loader = data.DataLoader(
-        train_data, batch_size=1, num_workers=11, shuffle=True
+        train_data, batch_size=1, num_workers=0, shuffle=True
     )
 
     print('Loading Validation Dataset of {} task...'.format(task))
     val_data = MRData(task, train=False)
     val_loader = data.DataLoader(
-        val_data, batch_size=1, num_workers=11, shuffle=False
+        val_data, batch_size=1, num_workers=0, shuffle=False
     )
 
     return train_loader, val_loader, train_data.weights, val_data.weights

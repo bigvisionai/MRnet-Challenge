@@ -4,7 +4,7 @@ from torchvision import models
 import os
 
 class MRnet(nn.Module):
-    """MRnet uses pretrained resnet50 as a backbone to extract features
+    """MRnet uses pretrained resnet50 as a backbone to extract features, this is multilabel classifying model
     """
     
     def __init__(self): # add conf file
@@ -21,7 +21,7 @@ class MRnet(nn.Module):
         self.pool_saggital = nn.AdaptiveAvgPool2d(1)
 
         self.fc = nn.Sequential(
-            nn.Linear(in_features=3*256,out_features=1)
+            nn.Linear(in_features=3*256,out_features=3)
         )
 
     def forward(self,x):

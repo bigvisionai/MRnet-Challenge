@@ -16,8 +16,8 @@ def _evaluate_model(model, val_loader, criterion, epoch, num_epochs, writer, cur
     # Set to eval mode
     model.eval()
 
-    y_probs = []
-    y_gt = []
+    y_probs = [[],[],[]]
+    y_gt = [[],[],[]]
     losses = []
 
     for i, (images, label) in enumerate(val_loader):
@@ -35,34 +35,45 @@ def _evaluate_model(model, val_loader, criterion, epoch, num_epochs, writer, cur
 
         probas = torch.sigmoid(output)
 
-        y_gt.append(int(label.item()))
-        y_probs.append(probas.item())
+        for i, x in enumerate(label[0]):
+            y_gt[i].append(int(label[0][i].item()))
+        
+        for i, x in enumerate(probas[0]):
+            y_probs[i].append(int(probas[0][i].item()))
 
-        try:
-            auc = metrics.roc_auc_score(y_gt, y_probs)
-        except:
-            auc = 0.5
+        aucs = []
+        for i in range(3):
+            try:
+                aucs.append(metrics.roc_auc_score(y_gt[i], y_probs[i]))
+            except:
+                aucs.append(0.5)
 
         writer.add_scalar('Val/Loss', loss_value, epoch * len(val_loader) + i)
-        writer.add_scalar('Val/AUC', auc, epoch * len(val_loader) + i)
+        writer.add_scalar('Val/AUC', np.mean(aucs), epoch * len(val_loader) + i)
+        writer.add_scalar('Val/AUC_abnormal', aucs[0], epoch * len(val_loader) + i)
+        writer.add_scalar('Val/AUC_acl', aucs[1], epoch * len(val_loader) + i)
+        writer.add_scalar('Val/AUC_meniscus', aucs[2], epoch * len(val_loader) + i)
 
         if (i % log_every == 0) & (i > 0):
-            print('''[Epoch: {0} / {1} | Batch : {2} / {3} ]| Avg Val Loss {4} | Val AUC : {5} | lr : {6}'''.
+            print('''[Epoch: {0} / {1} | Batch : {2} / {3} ]| Avg Val Loss {4} | Val AUC : {5} abnorm:{6} acl:{7} meni:{8} | lr : {9}'''.
                   format(
                       epoch + 1,
                       num_epochs,
                       i,
                       len(val_loader),
                       np.round(np.mean(losses), 4),
-                      np.round(auc, 4),
+                      np.round(np.mean(aucs), 4),
+                      np.round(aucs[0], 4),
+                      np.round(aucs[1], 4),
+                      np.round(aucs[2], 4),
                       current_lr
                   )
                   )
 
-    writer.add_scalar('Val/AUC_epoch', auc, epoch + i)
+    writer.add_scalar('Val/AUC_epoch', np.mean(aucs), epoch + i)
 
     val_loss_epoch = np.round(np.mean(losses), 4)
-    val_auc_epoch = np.round(auc, 4)
+    val_auc_epoch = np.round(np.mean(aucs), 4)
 
     return val_loss_epoch, val_auc_epoch
 
@@ -71,8 +82,8 @@ def _train_model(model, train_loader, epoch, num_epochs, optimizer, criterion, w
     # Set to train mode
     model.train()
 
-    y_probs = []
-    y_gt = []
+    y_probs = [[],[],[]]
+    y_gt = [[],[],[]]
     losses = []
 
     for i, (images, label) in enumerate(train_loader):
@@ -93,35 +104,46 @@ def _train_model(model, train_loader, epoch, num_epochs, optimizer, criterion, w
 
         probas = torch.sigmoid(output)
 
-        y_gt.append(int(label.item()))
-        y_probs.append(probas.item())
+        for i, x in enumerate(label[0]):
+            y_gt[i].append(int(label[0][i].item()))
+        
+        for i, x in enumerate(probas[0]):
+            y_probs[i].append(int(probas[0][i].item()))
 
-        try:
-            auc = metrics.roc_auc_score(y_gt, y_probs)
-        except:
-            auc = 0.5
+        aucs = []
+        for i in range(3):
+            try:
+                aucs.append(metrics.roc_auc_score(y_gt[i], y_probs[i]))
+            except:
+                aucs.append(0.5)
 
         writer.add_scalar('Train/Loss', loss_value,
                           epoch * len(train_loader) + i)
-        writer.add_scalar('Train/AUC', auc, epoch * len(train_loader) + i)
+        writer.add_scalar('Train/AUC', np.mean(aucs), epoch * len(train_loader) + i)
+        writer.add_scalar('Train/AUC_abnormal', aucs[0], epoch * len(train_loader) + i)
+        writer.add_scalar('Train/AUC_acl', aucs[1], epoch * len(train_loader) + i)
+        writer.add_scalar('Train/AUC_meniscus', aucs[2], epoch * len(train_loader) + i)
 
         if (i % log_every == 0) & (i > 0):
-            print('''[Epoch: {0} / {1} | Batch : {2} / {3} ]| Avg Train Loss {4} | Train AUC : {5} | lr : {6}'''.
+            print('''[Epoch: {0} / {1} | Batch : {2} / {3} ]| Avg Train Loss {4} | Train Avg AUC : {5} abnorm:{6} acl:{7} meni:{8} | lr : {9}'''.
                   format(
                       epoch + 1,
                       num_epochs,
                       i,
                       len(train_loader),
                       np.round(np.mean(losses), 4),
-                      np.round(auc, 4),
+                      np.round(np.mean(aucs), 4),
+                      np.round(aucs[0], 4),
+                      np.round(aucs[1], 4),
+                      np.round(aucs[2], 4),
                       current_lr
                   )
                   )
 
-    writer.add_scalar('Train/AUC_epoch', auc, epoch + i)
+    writer.add_scalar('Train/AUC_epoch', np.mean(aucs), epoch + i)
 
     train_loss_epoch = np.round(np.mean(losses), 4)
-    train_auc_epoch = np.round(auc, 4)
+    train_auc_epoch = np.round(np.mean(aucs), 4)
 
     return train_loss_epoch, train_auc_epoch
 
