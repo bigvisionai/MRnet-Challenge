@@ -48,9 +48,12 @@ Install other dependencies as per requirement
 
 # Understanding the Dataset
 
+<div align="center">
 
 <img src="content/mri_scan.png" width ="650" height="600"/>
 
+</div>
+  
 The dataset contains MRIs of different people. Each MRI consists of multiple images.
 Each MRI has data in 3 perpendicular planes. And each plane as variable number of slices.
 
@@ -76,8 +79,11 @@ We also plan to have 3 separate models for each disease.
 
 # Model Specifications
 
+<div align="center">
 
 <img src="content/model.png" width ="700" height="490"/>
+
+</div>
 
 We will be using Alexnet pretrained as a feature extractor. When we would have trained the 3 models on the 3 planes, we will use its feature extractor layer as an input to a `global` model for the final classification
 
