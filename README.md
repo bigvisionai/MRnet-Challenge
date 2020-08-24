@@ -1,6 +1,5 @@
 <div align="center">
-
-![Logo](content/logo.jpg)
+<img src="content/logo.jpg" width ="600" height="300"/>
 
 # Stanford MRnet Challenge
 
@@ -16,6 +15,8 @@ For more details refer to https://stanfordmlgroup.github.io/competitions/mrnet/
 2. `pip install nibabel`
 3. `pip install sklearn`
 4. `pip install pandas`
+
+Install other dependencies as per requirement
 
 # Instructions to run the training
 1. Clone the repository.
@@ -47,7 +48,8 @@ For more details refer to https://stanfordmlgroup.github.io/competitions/mrnet/
 
 # Understanding the Dataset
 
-![Logo](content/mri_scan.png)
+
+<img src="content/mri_scan.png" width ="650" height="600"/>
 
 The dataset contains MRIs of different people. Each MRI consists of multiple images.
 Each MRI has data in 3 perpendicular planes. And each plane as variable number of slices.
@@ -74,16 +76,17 @@ We also plan to have 3 separate models for each disease.
 
 # Model Specifications
 
-![Logo](content/model.png)
+
+<img src="content/model.png" width ="700" height="490"/>
 
 We will be using Alexnet pretrained as a feature extractor. When we would have trained the 3 models on the 3 planes, we will use its feature extractor layer as an input to a `global` model for the final classification
 
 # Contributors
 <p > 
-  Neelabh Madan   
+  -- Neelabh Madan   
  <a href = https://github.com/neelabh17 target='blank'> <img src=https://github.com/edent/SuperTinyIcons/blob/master/images/svg/github.svg height='30' weight='30'/></a>
 <br>
 
-Jatin Prakash <a href = https://github.com/bicycleman15 target='blank'> <img src=https://github.com/edent/SuperTinyIcons/blob/master/images/svg/github.svg height='30' weight='30'/></a>
+-- Jatin Prakash <a href = https://github.com/bicycleman15 target='blank'> <img src=https://github.com/edent/SuperTinyIcons/blob/master/images/svg/github.svg height='30' weight='30'/></a>
 
 
