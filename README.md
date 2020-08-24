@@ -6,8 +6,10 @@
 
 **This repo contains code for the MRNet Challenge**
 
-</div>
+
 For more details refer to https://stanfordmlgroup.github.io/competitions/mrnet/
+
+</div>
 
 # Install dependencies
 1. `pip install git+https://github.com/ncullen93/torchsample`
